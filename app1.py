@@ -3,8 +3,11 @@ from fpdf import FPDF
 import datetime
 import re
 import json
+
+# Esta línea debe ser la primera de Streamlit
 st.set_page_config(page_title="Conciliación de Medicación", layout="centered")
-# ------------- CARGA DE DICCIONARIO CIE-10 ---------------
+
+# ----------- CARGA DE DICCIONARIO CIE-10 -------------------
 @st.cache_data
 def cargar_diccionario_cie10(ruta_json="diccionario_diagnosticos_cie10_completo.json"):
     with open(ruta_json, "r", encoding="utf-8") as f:
@@ -44,8 +47,13 @@ def analizar_medicacion(meds, edad, fc, crea, cie10_detectados):
             aplica = False
         if "creatinina_min" in condiciones and crea is not None and crea >= condiciones["creatinina_min"]:
             aplica = False
+
+        # ✅ Coincidencia parcial de CIE10 (ej: H40 → H401, H402...)
         if "requiere_diagnostico_cie10" in condiciones:
-            if not any(cod in cie10_detectados for cod in condiciones["requiere_diagnostico_cie10"]):
+            if not any(
+                any(detectado.startswith(cod) for detectado in cie10_detectados)
+                for cod in condiciones["requiere_diagnostico_cie10"]
+            ):
                 aplica = False
 
         if aplica and any(palabra in m for m in meds for palabra in regla["palabras_clave"]):
@@ -97,7 +105,6 @@ def generar_pdf(edad, fc, crea, meds, alertas, cie10_detectados):
     return pdf.output(dest='S').encode('latin1')
 
 # ------------------ INTERFAZ DE USUARIO ------------------
-
 st.title("Conciliación de Medicación en Urgencias")
 
 edad = st.number_input("Edad del paciente", min_value=0, step=1)
