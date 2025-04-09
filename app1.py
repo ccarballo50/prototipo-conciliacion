@@ -3,7 +3,7 @@ from fpdf import FPDF
 import datetime
 import re
 import json
-
+st.set_page_config(page_title="Conciliación de Medicación", layout="centered")
 # ------------- CARGA DE DICCIONARIO CIE-10 ---------------
 @st.cache_data
 def cargar_diccionario_cie10(ruta_json="diccionario_diagnosticos_cie10_completo.json"):
@@ -97,7 +97,7 @@ def generar_pdf(edad, fc, crea, meds, alertas, cie10_detectados):
     return pdf.output(dest='S').encode('latin1')
 
 # ------------------ INTERFAZ DE USUARIO ------------------
-st.set_page_config(page_title="Conciliación de Medicación", layout="centered")
+
 st.title("Conciliación de Medicación en Urgencias")
 
 edad = st.number_input("Edad del paciente", min_value=0, step=1)
