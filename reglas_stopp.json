@@ -1,0 +1,97 @@
+[
+  {
+    "codigo": "STOPP A1",
+    "sistema": "cardiovascular",
+    "descripcion": "Uso de digoxina a dosis >125 µg/día como tratamiento crónico",
+    "palabras_clave": ["digoxina"],
+    "condiciones": {
+      "edad_min": 65
+    },
+    "mensaje": "Evitar digoxina >125 µg/día como tratamiento crónico en mayores de 65 años (riesgo de toxicidad)."
+  },
+  {
+    "codigo": "STOPP A2",
+    "sistema": "cardiovascular",
+    "descripcion": "Uso de bloqueadores alfa-1 en pacientes con incontinencia urinaria masculina",
+    "palabras_clave": ["tamsulosina", "alfuzosina", "doxazosina"],
+    "condiciones": {
+      "edad_min": 65
+    },
+    "mensaje": "Evitar alfa-bloqueantes en pacientes con incontinencia urinaria (riesgo de empeorar síntomas)."
+  },
+  {
+    "codigo": "STOPP A3",
+    "sistema": "cardiovascular",
+    "descripcion": "Uso combinado de IECA y ARA-II",
+    "palabras_clave": ["enalapril", "ramipril", "lisinopril", "losartán", "valsartán", "candesartán"],
+    "condiciones": {
+      "edad_min": 65
+    },
+    "mensaje": "Evitar combinación de IECA y ARA-II (riesgo de hiperpotasemia e insuficiencia renal)."
+  },
+  {
+    "codigo": "STOPP A4",
+    "sistema": "cardiovascular",
+    "descripcion": "Uso de betabloqueantes si la frecuencia cardiaca es <50 lpm",
+    "palabras_clave": ["atenolol", "bisoprolol", "carvedilol", "metoprolol"],
+    "condiciones": {
+      "edad_min": 65
+    },
+    "mensaje": "Evitar betabloqueantes si la FC es <50 lpm (riesgo de bradicardia)."
+  }
+]
+[
+  {
+    "codigo": "STOPP B1",
+    "sistema": "snc",
+    "descripcion": "Uso prolongado de benzodiacepinas de acción larga",
+    "palabras_clave": ["diazepam", "clonazepam", "flurazepam", "nitrazepam", "flunitrazepam"],
+    "condiciones": {
+      "edad_min": 65
+    },
+    "mensaje": "Evitar benzodiacepinas de acción larga en mayores (riesgo de sedación, caídas, deterioro cognitivo)."
+  },
+  {
+    "codigo": "STOPP B2",
+    "sistema": "snc",
+    "descripcion": "Uso de antipsicóticos en pacientes con síntomas extrapiramidales previos",
+    "palabras_clave": ["haloperidol", "risperidona", "quetiapina", "olanzapina", "aripiprazol"],
+    "condiciones": {
+      "edad_min": 65
+    },
+    "mensaje": "Evitar antipsicóticos en pacientes con antecedentes de síntomas extrapiramidales (riesgo de empeoramiento)."
+  },
+  {
+    "codigo": "STOPP B3",
+    "sistema": "snc",
+    "descripcion": "Uso de antidepresivos tricíclicos en demencia, glaucoma, arritmia o estreñimiento crónico",
+    "palabras_clave": ["amitriptilina", "nortriptilina", "imipramina", "clomipramina"],
+    "condiciones": {
+      "edad_min": 65
+    },
+    "mensaje": "Evitar tricíclicos en pacientes con demencia, glaucoma, estreñimiento o arritmias (efectos anticolinérgicos)."
+  },
+  {
+    "codigo": "STOPP B4",
+    "sistema": "snc",
+    "descripcion": "Uso de múltiples fármacos depresores del SNC",
+    "palabras_clave": ["lorazepam", "zolpidem", "quetiapina", "tramadol", "mirtazapina", "pregabalina"],
+    "condiciones": {
+      "edad_min": 65
+    },
+    "mensaje": "Evitar combinación de múltiples depresores del SNC (riesgo de sedación, caídas, confusión)."
+  }
+]
+[
+  {
+    "codigo": "STOPP R1",
+    "sistema": "respiratorio",
+    "descripcion": "Evitar ipratropio en pacientes con antecedentes de glaucoma",
+    "palabras_clave": ["ipratropio"],
+    "condiciones": {
+      "edad_min": 65,
+      "requiere_diagnostico_cie10": ["H40"]
+    },
+    "mensaje": "Evitar ipratropio en pacientes con antecedentes de glaucoma (riesgo de crisis ocular)."
+  }
+]
