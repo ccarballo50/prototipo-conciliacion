@@ -3,8 +3,9 @@ from fpdf import FPDF
 import datetime
 import re
 import json
+from io import BytesIO
 
-# Esta línea debe ser la primera de Streamlit
+# Configuración de la página (debe ir primero)
 st.set_page_config(page_title="Conciliación de Medicación", layout="centered")
 
 # ----------- CARGA DE DICCIONARIO CIE-10 -------------------
@@ -48,7 +49,7 @@ def analizar_medicacion(meds, edad, fc, crea, cie10_detectados):
         if "creatinina_min" in condiciones and crea is not None and crea >= condiciones["creatinina_min"]:
             aplica = False
 
-        # ✅ Coincidencia parcial de CIE10 (ej: H40 → H401, H402...)
+        # Coincidencia parcial con códigos CIE10 (ej. H40 -> H401)
         if "requiere_diagnostico_cie10" in condiciones:
             if not any(
                 any(detectado.startswith(cod) for detectado in cie10_detectados)
@@ -102,7 +103,10 @@ def generar_pdf(edad, fc, crea, meds, alertas, cie10_detectados):
     else:
         pdf.cell(200, 8, txt="No se detectaron alertas.", ln=True)
 
-    return pdf.output(dest='S').encode('latin-1', 'replace')
+    # ✅ Generación segura de PDF como bytes
+    buffer = BytesIO()
+    pdf.output(buffer)
+    return buffer.getvalue()
 
 # ------------------ INTERFAZ DE USUARIO ------------------
 st.title("Conciliación de Medicación en Urgencias")
