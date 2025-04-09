@@ -66,7 +66,10 @@ def analizar_medicacion(meds, edad, fc, crea, cie10_detectados):
 def generar_pdf(edad, fc, crea, meds, alertas, cie10_detectados):
     pdf = FPDF()
     pdf.add_page()
-    pdf.set_font("Arial", size=12)
+
+    # ✅ Añadir fuente Unicode personalizada
+    pdf.add_font("DejaVu", "", "DejaVuSans.ttf", uni=True)
+    pdf.set_font("DejaVu", size=12)
 
     pdf.cell(200, 10, txt="Informe de Conciliación de Medicación", ln=True, align="C")
     pdf.ln(10)
@@ -77,9 +80,9 @@ def generar_pdf(edad, fc, crea, meds, alertas, cie10_detectados):
     pdf.cell(200, 10, txt=f"Creatinina: {crea} mg/dL", ln=True)
 
     pdf.ln(5)
-    pdf.set_font("Arial", style="B", size=12)
+    pdf.set_font("DejaVu", style="B", size=12)
     pdf.cell(200, 10, txt="Diagnósticos detectados (CIE-10):", ln=True)
-    pdf.set_font("Arial", size=12)
+    pdf.set_font("DejaVu", size=12)
     if cie10_detectados:
         for cod in cie10_detectados:
             pdf.cell(200, 8, txt="- " + cod, ln=True)
@@ -87,26 +90,27 @@ def generar_pdf(edad, fc, crea, meds, alertas, cie10_detectados):
         pdf.cell(200, 8, txt="Ninguno", ln=True)
 
     pdf.ln(5)
-    pdf.set_font("Arial", style="B", size=12)
+    pdf.set_font("DejaVu", style="B", size=12)
     pdf.cell(200, 10, txt="Tratamiento introducido:", ln=True)
-    pdf.set_font("Arial", size=12)
+    pdf.set_font("DejaVu", size=12)
     for med in meds:
         pdf.cell(200, 8, txt="- " + med, ln=True)
 
     pdf.ln(5)
-    pdf.set_font("Arial", style="B", size=12)
+    pdf.set_font("DejaVu", style="B", size=12)
     pdf.cell(200, 10, txt="Alertas detectadas:", ln=True)
-    pdf.set_font("Arial", size=12)
+    pdf.set_font("DejaVu", size=12)
     if alertas:
         for alerta in alertas:
             pdf.multi_cell(0, 8, txt="• " + alerta)
     else:
         pdf.cell(200, 8, txt="No se detectaron alertas.", ln=True)
 
-    # ✅ Generación segura de PDF como bytes
+    # Generar PDF como bytes seguros
     buffer = BytesIO()
     pdf.output(buffer)
     return buffer.getvalue()
+
 
 # ------------------ INTERFAZ DE USUARIO ------------------
 st.title("Conciliación de Medicación en Urgencias")
