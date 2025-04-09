@@ -6,7 +6,7 @@ import json
 
 # ------------- CARGA DE DICCIONARIO CIE-10 ---------------
 @st.cache_data
-def cargar_diccionario_cie10(ruta_json="diccionario_diagnosticos_cie10.json"):
+def cargar_diccionario_cie10(ruta_json="diccionario_diagnosticos_cie10_completo.json"):
     with open(ruta_json, "r", encoding="utf-8") as f:
         return json.load(f)
 
@@ -108,7 +108,7 @@ med_input = st.text_area("Tratamiento actual (una línea por fármaco):")
 meds = [m.strip().lower() for m in med_input.splitlines() if m.strip()]
 
 if st.button("Analizar"):
-    diccionario_cie10 = cargar_diccionario_cie10("diccionario_diagnosticos_cie10.json")
+    diccionario_cie10 = cargar_diccionario_cie10("diccionario_diagnosticos_cie10_completo.json")
     cie10_detectados = detectar_diagnosticos(historia_clinica_texto, diccionario_cie10)
 
     st.info(f"Diagnósticos detectados: {', '.join(cie10_detectados) if cie10_detectados else 'ninguno'}")
