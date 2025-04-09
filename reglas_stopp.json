@@ -1,0 +1,34 @@
+[
+  {
+    "codigo": "STOPP R1",
+    "sistema": "respiratorio",
+    "descripcion": "Evitar ipratropio en pacientes con antecedentes de glaucoma",
+    "palabras_clave": ["ipratropio"],
+    "condiciones": {
+      "edad_min": 65,
+      "requiere_diagnostico_cie10": ["H40"]
+    },
+    "mensaje": "Evitar ipratropio en pacientes con antecedentes de glaucoma (riesgo de crisis ocular)."
+  },
+  {
+    "codigo": "STOPP R2",
+    "sistema": "cardiovascular",
+    "descripcion": "Evitar digoxina a dosis > 125 mcg/día en mayores",
+    "palabras_clave": ["digoxina 0.25", "digoxina 250"],
+    "condiciones": {
+      "edad_min": 65
+    },
+    "mensaje": "Evitar digoxina >125 µg/día como tratamiento crónico en mayores."
+  },
+  {
+    "codigo": "STOPP R3",
+    "sistema": "renal",
+    "descripcion": "Evitar AINEs en pacientes con insuficiencia renal crónica",
+    "palabras_clave": ["ibuprofeno", "naproxeno", "diclofenaco", "ketorolaco"],
+    "condiciones": {
+      "requiere_diagnostico_cie10": ["N18"]
+    },
+    "mensaje": "Evitar AINEs en pacientes con insuficiencia renal crónica (riesgo de deterioro renal)."
+  }
+]
+
