@@ -102,7 +102,8 @@ def generar_pdf(edad, fc, crea, meds, alertas, cie10_detectados):
     else:
         pdf.cell(200, 8, txt="No se detectaron alertas.", ln=True)
 
-    return pdf.output(dest='S').encode('latin1')
+    return pdf.output(dest='S').encode('utf-8', errors='ignore')
+
 
 # ------------------ INTERFAZ DE USUARIO ------------------
 st.title("Conciliación de Medicación en Urgencias")
