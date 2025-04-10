@@ -46,7 +46,7 @@ def detectar_alertas(edad, sexo, diagnosticos_detectados, medicamentos_detectado
             continue
 
         # Comprobación de diagnóstico (match exacto o por prefijo contenido)
-        if regla["diagnosticos"]:
+        if "diagnosticos" in regla and regla["diagnosticos"]:
             if not any(
                 diag_regla.lower() in diag_detectado.lower()
                 for diag_regla in regla["diagnosticos"]
@@ -55,7 +55,7 @@ def detectar_alertas(edad, sexo, diagnosticos_detectados, medicamentos_detectado
                 continue
 
         # Comprobación de medicamentos (match por inclusión)
-        if regla["medicamentos"]:
+        if "medicamentos" in regla and regla["medicamentos"]:
             if not any(
                 med_regla.lower() in med_detectado.lower()
                 for med_regla in regla["medicamentos"]
