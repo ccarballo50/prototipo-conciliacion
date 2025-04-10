@@ -1,0 +1,12 @@
+{
+  "glaucoma": ["glaucoma"],
+  "insuficiencia renal": ["insuficiencia renal", "fallo renal", "enfermedad renal"],
+  "asma": ["asma"],
+  "epoc": ["epoc", "enfermedad pulmonar obstructiva crónica"],
+  "diabetes": ["diabetes", "dm"],
+  "hipertension": ["hipertensión", "hta"],
+  "fibrilacion auricular": ["fibrilación auricular", "fa"],
+  "estenosis aortica": ["estenosis aórtica"],
+  "cirrosis hepatica": ["cirrosis"],
+  "epilepsia": ["epilepsia", "convulsiones"]
+}
