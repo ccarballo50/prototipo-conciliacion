@@ -67,11 +67,11 @@ if st.button("Analizar"):
     diagnosticos_detectados = detectar_diagnosticos(antecedentes, diccionario_diagnosticos)
 
     if diagnosticos_detectados:
-        st.info("\U0001FA7A Diagnósticos detectados en antecedentes:")
+        st.info("🩺 Diagnósticos detectados en antecedentes:")
         for diag in diagnosticos_detectados:
             st.markdown(f"- **{diag}**")
     else:
-        st.warning("\u26A0\ufe0f No se detectaron diagnósticos clínicos relevantes en los antecedentes.")
+        st.warning("⚠️ No se detectaron diagnósticos clínicos relevantes en los antecedentes.")
 
     # Detectar alertas STOPP
     alertas = detectar_alertas(edad, sexo, diagnosticos_detectados, medicacion, reglas_stopp)
