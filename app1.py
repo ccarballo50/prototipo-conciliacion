@@ -97,7 +97,7 @@ if st.button("Analizar"):
     alertas = []
 
     for regla in reglas_stopp:
-        palabras = regla["palabras"]
+        palabras = regla.get("palabras", [])
         cie_excluyentes = regla.get("cie_excluyentes", [])
         mensaje = regla["mensaje"]
 
