@@ -1,93 +1,139 @@
 import streamlit as st
-import json
+from fpdf import FPDF
+import datetime
 import re
+import json
 
-# ------------------ CONFIGURACIÓN PÁGINA ------------------
+# Esta línea debe ser la primera de Streamlit
 st.set_page_config(page_title="Conciliación de Medicación", layout="centered")
 
-# ------------------ CARGA DE ARCHIVOS ------------------
+# ----------- CARGA DE DICCIONARIO CIE-10 -------------------
 @st.cache_data
-def cargar_reglas_stopp(path="reglas_stopp.json"):
-    with open(path, encoding="utf-8") as f:
+def cargar_diccionario_cie10(ruta_json="diccionario_diagnosticos_cie10_completo.json"):
+    with open(ruta_json, "r", encoding="utf-8") as f:
         return json.load(f)
 
+def detectar_diagnosticos(texto, diccionario):
+    texto = texto.lower()
+    encontrados = set()
+    for codigo, patrones in diccionario.items():
+        for patron in patrones:
+            if re.search(rf"\b{re.escape(patron)}\b", texto):
+                encontrados.add(codigo)
+                break
+    return list(encontrados)
+
+# ------------- CARGA DE REGLAS STOPP ----------------------
 @st.cache_data
-def cargar_diccionario_diagnosticos(path="diccionario_diagnosticos.json"):
-    with open(path, encoding="utf-8") as f:
-        return json.load(f)
+def cargar_reglas_stopp():
+    with open("reglas_stopp.json", "r", encoding="utf-8") as file:
+        reglas = json.load(file)
+    return reglas
 
 reglas_stopp = cargar_reglas_stopp()
-diccionario_diagnosticos = cargar_diccionario_diagnosticos()
 
-# ------------------ FUNCIONES ------------------
-def detectar_diagnosticos(texto, diccionario):
-    encontrados = []
-    for clave, sinonimos in diccionario.items():
-        for patron in sinonimos:
-            if re.search(rf"\\b{patron.lower()}\\b", texto.lower()):
-                encontrados.append(clave)
-                break
-    return list(set(encontrados))
-
-def cumple_diagnostico_por_prefijo(diagnosticos_detectados, diagnosticos_regla):
-    return any(d.lower().startswith(r.lower()) for d in diagnosticos_detectados for r in diagnosticos_regla)
-
-def detectar_alertas(edad, sexo, diagnosticos_detectados, medicamentos_detectados, reglas):
+# ------------- ANALIZADOR DE MEDICACIÓN -------------------
+def analizar_medicacion(meds, edad, fc, crea, cie10_detectados):
     alertas = []
-    for regla in reglas:
-        # Comprobación de edad
-        if "edad_min" in regla and "edad_max" in regla:
-            if not (regla["edad_min"] <= edad <= regla["edad_max"]):
-                continue
+    for regla in reglas_stopp:
+        condiciones = regla.get("condiciones", {})
+        aplica = True
 
+        if "edad_min" in condiciones and edad < condiciones["edad_min"]:
+            aplica = False
+        if "edad_max" in condiciones and edad > condiciones["edad_max"]:
+            aplica = False
+        if "creatinina_max" in condiciones and crea is not None and crea <= condiciones["creatinina_max"]:
+            aplica = False
+        if "creatinina_min" in condiciones and crea is not None and crea >= condiciones["creatinina_min"]:
+            aplica = False
 
-        # Comprobación de sexo si aplica
-        if "sexo" in regla and regla["sexo"].lower() != "cualquiera" and regla["sexo"].lower() != sexo.lower():
-            continue
-
-        # Comprobación de diagnóstico (match exacto o por prefijo contenido)
-        if "diagnosticos" in regla and regla["diagnosticos"]:
+        # ✅ Coincidencia parcial de CIE10 (ej: H40 → H401, H402...)
+        if "requiere_diagnostico_cie10" in condiciones:
             if not any(
-                diag_regla.lower() in diag_detectado.lower()
-                for diag_regla in regla["diagnosticos"]
-                for diag_detectado in diagnosticos_detectados
+                any(detectado.startswith(cod) for detectado in cie10_detectados)
+                for cod in condiciones["requiere_diagnostico_cie10"]
             ):
-                continue
+                aplica = False
 
-        # Comprobación de medicamentos (match por inclusión)
-        if "medicamentos" in regla and regla["medicamentos"]:
-            if not any(
-                med_regla.lower() in med_detectado.lower()
-                for med_regla in regla["medicamentos"]
-                for med_detectado in medicamentos_detectados
-            ):
-                continue
-
-        # Si pasa todas las condiciones
-        alertas.append(regla.get("alerta", "⚠️ Alerta sin mensaje definido"))
+        if aplica and any(palabra in m for m in meds for palabra in regla["palabras_clave"]):
+            alertas.append(regla["mensaje"])
 
     return alertas
 
-# ------------------ INTERFAZ ------------------
-st.title("Conciliación de Medicación - STOPP/START")
+# ------------- GENERADOR DE PDF ---------------------------
+def generar_pdf(edad, fc, crea, meds, alertas, cie10_detectados):
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", size=12)
 
-edad = st.number_input("Edad del paciente", min_value=0, max_value=120, step=1)
-sexo = st.radio("Sexo del paciente", ["masculino", "femenino"])
-antecedentes = st.text_area("Antecedentes personales / Historia clínica")
-medicacion = st.text_area("Tratamiento actual (una línea por fármaco)")
+    pdf.cell(200, 10, txt="Informe de Conciliación de Medicación", ln=True, align="C")
+    pdf.ln(10)
+    pdf.cell(200, 10, txt=f"Fecha: {datetime.datetime.now().strftime('%d/%m/%Y %H:%M')}", ln=True)
+    pdf.ln(5)
+    pdf.cell(200, 10, txt=f"Edad: {edad} años", ln=True)
+    pdf.cell(200, 10, txt=f"Frecuencia cardiaca: {fc} lpm", ln=True)
+    pdf.cell(200, 10, txt=f"Creatinina: {crea} mg/dL", ln=True)
+
+    pdf.ln(5)
+    pdf.set_font("Arial", style="B", size=12)
+    pdf.cell(200, 10, txt="Diagnósticos detectados (CIE-10):", ln=True)
+    pdf.set_font("Arial", size=12)
+    if cie10_detectados:
+        for cod in cie10_detectados:
+            pdf.cell(200, 8, txt="- " + cod, ln=True)
+    else:
+        pdf.cell(200, 8, txt="Ninguno", ln=True)
+
+    pdf.ln(5)
+    pdf.set_font("Arial", style="B", size=12)
+    pdf.cell(200, 10, txt="Tratamiento introducido:", ln=True)
+    pdf.set_font("Arial", size=12)
+    for med in meds:
+        pdf.cell(200, 8, txt="- " + med, ln=True)
+
+    pdf.ln(5)
+    pdf.set_font("Arial", style="B", size=12)
+    pdf.cell(200, 10, txt="Alertas detectadas:", ln=True)
+    pdf.set_font("Arial", size=12)
+    if alertas:
+        for alerta in alertas:
+            pdf.multi_cell(0, 8, txt="• " + alerta)
+    else:
+        pdf.cell(200, 8, txt="No se detectaron alertas.", ln=True)
+
+    return pdf.output(dest='S').encode('latin1')
+
+# ------------------ INTERFAZ DE USUARIO ------------------
+st.title("Conciliación de Medicación en Urgencias")
+
+edad = st.number_input("Edad del paciente", min_value=0, step=1)
+fc = st.number_input("Frecuencia cardiaca (lpm)", min_value=0, step=1)
+crea = st.number_input("Creatinina (mg/dL)", min_value=0.0, step=0.1)
+historia_clinica_texto = st.text_area("Antecedentes personales / Historia clínica")
+med_input = st.text_area("Tratamiento actual (una línea por fármaco):")
+meds = [m.strip().lower() for m in med_input.splitlines() if m.strip()]
 
 if st.button("Analizar"):
-    diagnosticos_detectados = detectar_diagnosticos(antecedentes, diccionario_diagnosticos)
+    diccionario_cie10 = cargar_diccionario_cie10("diccionario_diagnosticos_cie10_completo.json")
+    cie10_detectados = detectar_diagnosticos(historia_clinica_texto, diccionario_cie10)
 
-    st.info("Diagnósticos detectados en antecedentes:")
-    for d in diagnosticos_detectados:
-        st.markdown(f"- **{d}**")
+    st.info(f"Diagnósticos detectados: {', '.join(cie10_detectados) if cie10_detectados else 'ninguno'}")
 
-    alertas = detectar_alertas(edad, sexo, diagnosticos_detectados, medicacion, reglas_stopp)
+    alertas = analizar_medicacion(meds, edad, fc, crea, cie10_detectados)
 
     if alertas:
         st.warning("Se han detectado las siguientes alertas:")
         for alerta in alertas:
-            st.markdown(f"- {alerta}")
+            st.write("• " + alerta)
     else:
         st.success("No se han detectado alertas con los datos introducidos.")
+
+    # PDF
+    pdf_bytes = generar_pdf(edad, fc, crea, meds, alertas, cie10_detectados)
+    st.download_button(
+        label="📄 Descargar informe en PDF",
+        data=pdf_bytes,
+        file_name="informe_conciliacion.pdf",
+        mime="application/pdf"
+    )
