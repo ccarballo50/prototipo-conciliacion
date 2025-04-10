@@ -21,48 +21,6 @@ def cargar_diccionario_cie10():
 reglas_stopp = cargar_reglas_stopp()
 diccionario_cie10 = cargar_diccionario_cie10()
 
-# ---------------- FUNCION PARA PDF ----------------
-def generar_pdf(edad, fc, crea, meds, alertas, cie10_detectados):
-    pdf = FPDF()
-    pdf.add_page()
-
-    pdf.add_font("DejaVu", "", "DejaVuSans.ttf", uni=True)
-    pdf.set_font("DejaVu", size=12)
-
-    pdf.cell(200, 10, txt="Informe de Conciliación de Medicación", ln=True, align="C")
-    pdf.ln(10)
-    pdf.cell(200, 10, txt=f"Fecha: {datetime.datetime.now().strftime('%d/%m/%Y %H:%M')}", ln=True)
-    pdf.ln(5)
-    pdf.cell(200, 10, txt=f"Edad: {edad} años", ln=True)
-    pdf.cell(200, 10, txt=f"Frecuencia cardiaca: {fc} lpm", ln=True)
-    pdf.cell(200, 10, txt=f"Creatinina: {crea} mg/dL", ln=True)
-
-    pdf.ln(5)
-    pdf.cell(200, 10, txt="Diagnósticos detectados (CIE-10):", ln=True)
-    if cie10_detectados:
-        for cod in cie10_detectados:
-            pdf.cell(200, 8, txt="- " + cod, ln=True)
-    else:
-        pdf.cell(200, 8, txt="Ninguno", ln=True)
-
-    pdf.ln(5)
-    pdf.cell(200, 10, txt="Tratamiento introducido:", ln=True)
-    for med in meds:
-        pdf.cell(200, 8, txt="- " + med, ln=True)
-
-    pdf.ln(5)
-    pdf.cell(200, 10, txt="Alertas detectadas:", ln=True)
-    if alertas:
-        for alerta in alertas:
-            pdf.multi_cell(0, 8, txt="• " + alerta)
-    else:
-        pdf.cell(200, 8, txt="No se detectaron alertas.", ln=True)
-
-    buffer = BytesIO()
-    buffer.write(pdf.output(dest='S').encode('latin1'))
-    buffer.seek(0)
-    return buffer
-
 # ---------------- INTERFAZ PRINCIPAL ----------------
 st.title("Conciliación de Medicación en Urgencias (Prototipo)")
 
@@ -82,7 +40,9 @@ if st.button("Analizar"):
 
     alertas = []
     for regla in reglas_stopp:
-        palabras = regla.get("palabras", [])
+        if "palabras" not in regla or "mensaje" not in regla:
+            continue
+        palabras = regla["palabras"]
         cie10 = regla.get("cie10", [])
         if any(p.lower() in input_meds.lower() for p in palabras):
             if not cie10 or any(c in cie10_detectados for c in cie10):
@@ -96,13 +56,4 @@ if st.button("Analizar"):
         st.success("No se han detectado alertas con los datos introducidos.")
 
     st.info("Diagnósticos detectados: " + ", ".join(cie10_detectados))
-
-    # Generar PDF
-    pdf_bytes = generar_pdf(edad, fc, crea, meds, alertas, cie10_detectados)
-    st.download_button(
-        label="📄 Descargar informe en PDF",
-        data=pdf_bytes,
-        file_name="informe_conciliacion.pdf",
-        mime="application/pdf"
-    )
 
