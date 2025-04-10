@@ -1,23 +1,30 @@
 {
   "STOPP01": {
-    "descripcion": "Evitar ipratropio en pacientes con antecedentes de glaucoma (riesgo de crisis ocular).",
-    "sexo": "cualquiera",
+    "id": "STOPP01",
     "edad_min": 0,
-    "edad_max": 120,
+    "edad_max": 150,
+    "sexo": "cualquiera",
     "diagnosticos": ["glaucoma"],
     "medicamentos": ["ipratropio", "bromuro de ipratropio"],
-    "criterios_cie": [],
     "alerta": "Evitar ipratropio en pacientes con antecedentes de glaucoma (riesgo de crisis ocular)."
   },
   "STOPP02": {
-    "descripcion": "Evitar AINEs en pacientes con insuficiencia renal crónica (riesgo de deterioro renal).",
+    "id": "STOPP02",
+    "edad_min": 65,
+    "edad_max": 150,
     "sexo": "cualquiera",
-    "edad_min": 0,
-    "edad_max": 120,
     "diagnosticos": ["insuficiencia renal"],
-    "medicamentos": ["ibuprofeno", "naproxeno", "diclofenaco", "aine", "aines"],
-    "criterios_cie": [],
+    "medicamentos": ["ibuprofeno", "AINE"],
     "alerta": "Evitar AINEs en pacientes con insuficiencia renal crónica (riesgo de deterioro renal)."
+  },
+  "STOPP03": {
+    "id": "STOPP03",
+    "edad_min": 75,
+    "edad_max": 150,
+    "sexo": "mujer",
+    "diagnosticos": [],
+    "medicamentos": ["benzodiazepina"],
+    "alerta": "Evitar benzodiazepinas en mujeres mayores de 75 años (riesgo de caídas y deterioro cognitivo)."
   }
 }
 
