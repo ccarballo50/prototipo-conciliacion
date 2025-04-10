@@ -32,18 +32,38 @@ def detectar_diagnosticos(texto, diccionario):
 def cumple_diagnostico_por_prefijo(diagnosticos_detectados, diagnosticos_regla):
     return any(d.lower().startswith(r.lower()) for d in diagnosticos_detectados for r in diagnosticos_regla)
 
-def detectar_alertas(edad, sexo, diagnosticos_detectados, medicacion, reglas):
+def detectar_alertas(edad, sexo, diagnosticos_detectados, medicamentos_detectados, reglas):
     alertas = []
-    for regla in reglas:
-        if regla.get("sexo") and sexo.lower() != regla["sexo"].lower():
+    for regla in reglas.values():
+        # Comprobación de edad
+        if not (regla["edad_min"] <= edad <= regla["edad_max"]):
             continue
-        if "diagnosticos" in regla:
-            if not cumple_diagnostico_por_prefijo(diagnosticos_detectados, regla["diagnosticos"]):
+
+        # Comprobación de sexo si aplica
+        if regla["sexo"] != "cualquiera" and regla["sexo"].lower() != sexo.lower():
+            continue
+
+        # Comprobación de diagnóstico (match exacto o por prefijo contenido)
+        if regla["diagnosticos"]:
+            if not any(
+                diag_regla.lower() in diag_detectado.lower()
+                for diag_regla in regla["diagnosticos"]
+                for diag_detectado in diagnosticos_detectados
+            ):
                 continue
-        if "palabras" in regla:
-            if not any(re.search(rf"\\b{p}\b", medicacion.lower()) for p in regla["palabras"]):
+
+        # Comprobación de medicamentos (match por inclusión)
+        if regla["medicamentos"]:
+            if not any(
+                med_regla.lower() in med_detectado.lower()
+                for med_regla in regla["medicamentos"]
+                for med_detectado in medicamentos_detectados
+            ):
                 continue
-        alertas.append(regla["mensaje"])
+
+        # Si pasa todas las condiciones
+        alertas.append(regla["alerta"])
+
     return alertas
 
 # ------------------ INTERFAZ ------------------
