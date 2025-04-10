@@ -64,7 +64,7 @@ def detectar_alertas(edad, sexo, diagnosticos_detectados, medicamentos_detectado
                 continue
 
         # Si pasa todas las condiciones
-        alertas.append(regla["alerta"])
+        alertas.append(regla.get("alerta", "⚠️ Alerta sin mensaje definido"))
 
     return alertas
 
