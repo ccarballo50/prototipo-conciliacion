@@ -1,9 +1,32 @@
 import streamlit as st
 import json
+import re
 
 # Cargar reglas STOPP desde el archivo JSON
 with open("reglas_stopp.json", "r", encoding="utf-8") as f:
     reglas_stopp = json.load(f)
+
+# Cargar diccionario de diagnósticos normalizados
+with open("diccionario_diagnosticos.json", "r", encoding="utf-8") as f:
+    diccionario_diagnosticos = json.load(f)
+
+def detectar_diagnosticos(texto, diccionario):
+    etiquetas = set()
+    texto = texto.lower()
+    for etiqueta, sinonimos in diccionario.items():
+        for termino in sinonimos:
+            if re.search(rf"\\b{re.escape(termino.lower())}\\b", texto):
+                etiquetas.add(etiqueta)
+                break
+    return etiquetas
+
+def detectar_medicamentos(texto, lista_meds):
+    encontrados = set()
+    texto = texto.lower()
+    for med in lista_meds:
+        if med.lower() in texto:
+            encontrados.add(med)
+    return encontrados
 
 st.title("Asistente de Conciliación Farmacológica - Reglas STOPP")
 
@@ -13,33 +36,25 @@ medicacion = st.text_area("Tratamiento actual (una línea por fármaco)")
 
 if st.button("Analizar"):
     alertas = []
-    diagnosticos_detectados = set()
+    texto_antecedentes = antecedentes.lower()
+    texto_meds = medicacion.lower()
+
+    diagnosticos_detectados = detectar_diagnosticos(texto_antecedentes, diccionario_diagnosticos)
     medicamentos_detectados = set()
 
-    antecedentes_texto = antecedentes.lower()
-    medicacion_texto = medicacion.lower()
-
-    # Evaluar cada regla
     for regla in reglas_stopp:
         sexo_req = regla.get("sexo", "ambos")
         if sexo_req not in ["ambos", "no especificado"]:
             continue  # Por ahora ignoramos la variable sexo si no está definida correctamente
 
-        diagnosticos = regla.get("diagnosticos", [])
-        medicamentos = regla.get("medicamentos", [])
+        diagnosticos_regla = set(regla.get("diagnosticos", []))
+        medicamentos_regla = set(regla.get("medicamentos", []))
 
-        match_diag = any(diag.lower() in antecedentes_texto for diag in diagnosticos)
-        match_meds = any(med.lower() in medicacion_texto for med in medicamentos)
+        match_diag = bool(diagnosticos_regla & diagnosticos_detectados)
+        match_meds = bool(detectar_medicamentos(texto_meds, medicamentos_regla))
 
         if match_diag:
-            for diag in diagnosticos:
-                if diag.lower() in antecedentes_texto:
-                    diagnosticos_detectados.add(diag)
-
-        if match_meds:
-            for med in medicamentos:
-                if med.lower() in medicacion_texto:
-                    medicamentos_detectados.add(med)
+            medicamentos_detectados |= detectar_medicamentos(texto_meds, medicamentos_regla)
 
         if match_diag and match_meds:
             alertas.append(regla["descripcion"])
@@ -60,7 +75,7 @@ if st.button("Analizar"):
     else:
         st.write("No se han detectado diagnósticos reconocidos.")
 
-    # Mostrar medicamentos detectados (opcional)
+    # Mostrar medicamentos detectados (sin duplicados)
     st.markdown("#### Medicamentos detectados:")
     if medicamentos_detectados:
         for med in sorted(medicamentos_detectados):
