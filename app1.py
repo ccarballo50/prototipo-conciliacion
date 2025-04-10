@@ -36,6 +36,15 @@ def detectar_diagnosticos(texto, diccionario):
             if diag.startswith(req):
                 return True
     return False
+def cumple_diagnostico_por_prefijo(diagnosticos_detectados, diagnosticos_regla):
+    """
+    Verifica si al menos uno de los diagnósticos detectados cumple con alguno de los prefijos CIE10 indicados en la regla.
+    """
+    for cie_detectado in diagnosticos_detectados:
+        for cie_regla in diagnosticos_regla:
+            if cie_detectado.startswith(cie_regla):
+                return True
+    return False
 
 def detectar_alertas(edad, sexo_paciente, diagnosticos_detectados, tratamiento, reglas, creatinina, fc):
     alertas = []
