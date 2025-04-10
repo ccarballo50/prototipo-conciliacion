@@ -30,15 +30,26 @@ def detectar_diagnosticos(texto, diccionario):
                 break
     return list(encontrados)
 
-def detectar_alertas(edad, sexo_paciente, diagnosticos_detectados, tratamiento, reglas):
+def cumple_diagnostico_por_prefijo(detectados, requeridos):
+    for diag in detectados:
+        for req in requeridos:
+            if diag.startswith(req):
+                return True
+    return False
+
+def detectar_alertas(edad, sexo_paciente, diagnosticos_detectados, tratamiento, reglas, creatinina, fc):
     alertas = []
     for regla in reglas:
         condiciones = regla.get("condiciones", {})
         medicamentos = condiciones.get("medicamentos", [])
-        diagnosticos_regla = condiciones.get("diagnosticos", [])
+        diagnosticos_regla = condiciones.get("requiere_diagnostico_cie10", [])
         edad_min = condiciones.get("edad_minima")
         edad_max = condiciones.get("edad_maxima")
         sexo = condiciones.get("sexo", "ambos")
+        crea_min = condiciones.get("creatinina_minima")
+        crea_max = condiciones.get("creatinina_maxima")
+        fc_min = condiciones.get("fc_minima")
+        fc_max = condiciones.get("fc_maxima")
 
         if edad_min and edad < edad_min:
             continue
@@ -46,7 +57,15 @@ def detectar_alertas(edad, sexo_paciente, diagnosticos_detectados, tratamiento, 
             continue
         if sexo != "ambos" and sexo != sexo_paciente:
             continue
-        if diagnosticos_regla and not any(d in diagnosticos_detectados for d in diagnosticos_regla):
+        if diagnosticos_regla and not cumple_diagnostico_por_prefijo(diagnosticos_detectados, diagnosticos_regla):
+            continue
+        if crea_min and creatinina < crea_min:
+            continue
+        if crea_max and creatinina > crea_max:
+            continue
+        if fc_min and fc < fc_min:
+            continue
+        if fc_max and fc > fc_max:
             continue
         if not any(med.lower() in tratamiento.lower() for med in medicamentos):
             continue
@@ -59,6 +78,8 @@ st.title("Conciliación de Medicación en Urgencias (Prototipo)")
 
 edad = st.number_input("Edad del paciente", min_value=0, max_value=120, value=75)
 sexo = st.selectbox("Sexo del paciente", options=["masculino", "femenino"])
+creatinina = st.number_input("Creatinina (mg/dL)", min_value=0.0, max_value=20.0, value=1.0, step=0.1)
+fc = st.number_input("Frecuencia cardíaca (lpm)", min_value=20, max_value=200, value=70)
 antecedentes = st.text_area("Antecedentes personales / Historia clínica")
 medicacion = st.text_area("Tratamiento actual (una línea por fármaco)")
 
@@ -74,7 +95,7 @@ if st.button("Analizar"):
         st.warning("⚠️ No se detectaron diagnósticos clínicos relevantes en los antecedentes.")
 
     # Detectar alertas STOPP
-    alertas = detectar_alertas(edad, sexo, diagnosticos_detectados, medicacion, reglas_stopp)
+    alertas = detectar_alertas(edad, sexo, diagnosticos_detectados, medicacion, reglas_stopp, creatinina, fc)
 
     if alertas:
         st.warning("Se han detectado las siguientes alertas:")
