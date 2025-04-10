@@ -1,51 +1,46 @@
+import streamlit as st
 import json
 import re
-import streamlit as st
 
-# ------------------ CONFIGURACIÓN PÁGINA ------------------
+# ------------- CONFIGURACIÓN DE PÁGINA ----------------
 st.set_page_config(page_title="Conciliación de Medicación", layout="centered")
 
-# ------------------ CARGA DE REGLAS STOPP ------------------
+# ------------- CARGA DE REGLAS ----------------
 @st.cache_data
 def cargar_reglas_stopp(path="reglas_stopp.json"):
-    with open(path, encoding="utf-8") as file:
-        return json.load(file)
-
-reglas_stopp = cargar_reglas_stopp()
-
-# ------------------ CARGA DE DICCIONARIO CIE10 ------------------
-@st.cache_data
-def cargar_diccionario_cie10(ruta_json="diccionario_diagnosticos_cie10_completo.json"):
-    with open(ruta_json, "r", encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         return json.load(f)
 
-diccionario_cie10 = cargar_diccionario_cie10()
+try:
+    reglas_stopp = cargar_reglas_stopp()
+except Exception as e:
+    st.error(f"Error cargando reglas STOPP: {e}")
+    reglas_stopp = []
 
-# ------------------ DETECTOR DE DIAGNÓSTICOS ------------------
-def detectar_diagnosticos(texto, diccionario):
-    codigos_detectados = []
-    for patron, codigo in diccionario.items():
-        try:
-            if re.search(rf"\b{patron.lower()}\b", texto.lower()):
-                codigos_detectados.append(codigo)
-        except:
-            continue
-    return list(set(codigos_detectados))
+# ------------- INTERFAZ ----------------
+st.title("Conciliación de Medicación")
 
-# ------------------ DETECTOR DE ALERTAS ------------------
-def detectar_alertas(edad, cie10_detectados, tratamiento, reglas):
+edad = st.number_input("Edad del paciente", min_value=0, max_value=120, value=75)
+antecedentes = st.text_area("Antecedentes personales / Historia clínica")
+medicacion = st.text_area("Tratamiento actual (una línea por fármaco)")
+
+if st.button("Analizar"):
     alertas = []
-    for regla in reglas:
+
+    for regla in reglas_stopp:
         palabras = regla.get("palabras_clave", [])
         condiciones = regla.get("condiciones", {})
-        mensaje = regla["mensaje"]
+        mensaje = regla.get("mensaje", "")
 
         if condiciones.get("edad_min") and edad < condiciones["edad_min"]:
             continue
-        if condiciones.get("requiere_diagnostico_cie10"):
-            if not any(d in cie10_detectados for d in condiciones["requiere_diagnostico_cie10"]):
-                continue
-        if any(palabra in tratamiento.lower() for palabra in palabras):
+        if any(p.lower() in medicacion.lower() for p in palabras):
             alertas.append(mensaje)
 
-    return alertas
+    if alertas:
+        st.warning("Se han detectado las siguientes alertas:")
+        for alerta in alertas:
+            st.markdown(f"- {alerta}")
+    else:
+        st.success("No se han detectado alertas con los datos introducidos.")
+
