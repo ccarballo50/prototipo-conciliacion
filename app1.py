@@ -24,6 +24,22 @@ def detectar_diagnosticos(texto_libre, diccionario):
                 break
     return list(diagnosticos_detectados)
 
+# Mostrar diagnósticos detectados desde texto libre
+diagnosticos_detectados = set()
+
+for regla in reglas_stopp:
+    for diag in regla.get("diagnosticos", []):
+        if diag.lower() in antecedentes.lower():
+            diagnosticos_detectados.add(diag)
+
+if diagnosticos_detectados:
+    st.markdown("#### Diagnósticos detectados en texto libre:")
+    for diag in sorted(diagnosticos_detectados):
+        st.write(f"- {diag}")
+else:
+    st.markdown("#### Diagnósticos detectados en texto libre:")
+    st.write("No se han detectado diagnósticos reconocidos.")
+
 def evaluar_reglas(diagnosticos, medicamentos, sexo):
     alertas = []
     for regla in reglas_stopp:
