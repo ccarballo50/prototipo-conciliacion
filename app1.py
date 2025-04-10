@@ -80,7 +80,7 @@ def generar_pdf(edad, fc, crea, meds, alertas, cie10_detectados):
     pdf.cell(200, 10, txt=f"Creatinina: {crea} mg/dL", ln=True)
 
     pdf.ln(5)
-    pdf.set_font("DejaVu", style="B", size=12)
+    pdf.set_font("DejaVu", size=12)
     pdf.cell(200, 10, txt="Diagnósticos detectados (CIE-10):", ln=True)
     pdf.set_font("DejaVu", size=12)
     if cie10_detectados:
@@ -90,14 +90,14 @@ def generar_pdf(edad, fc, crea, meds, alertas, cie10_detectados):
         pdf.cell(200, 8, txt="Ninguno", ln=True)
 
     pdf.ln(5)
-    pdf.set_font("DejaVu", style="B", size=12)
+    pdf.set_font("DejaVu", size=12)
     pdf.cell(200, 10, txt="Tratamiento introducido:", ln=True)
     pdf.set_font("DejaVu", size=12)
     for med in meds:
         pdf.cell(200, 8, txt="- " + med, ln=True)
 
     pdf.ln(5)
-    pdf.set_font("DejaVu", style="B", size=12)
+    pdf.set_font("DejaVu", size=12)
     pdf.cell(200, 10, txt="Alertas detectadas:", ln=True)
     pdf.set_font("DejaVu", size=12)
     if alertas:
