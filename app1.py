@@ -82,7 +82,7 @@ if st.button("Analizar"):
 
     alertas = []
     for regla in reglas_stopp:
-        palabras = regla["palabras"]
+        palabras = regla.get("palabras", [])
         cie10 = regla.get("cie10", [])
         if any(p.lower() in input_meds.lower() for p in palabras):
             if not cie10 or any(c in cie10_detectados for c in cie10):
