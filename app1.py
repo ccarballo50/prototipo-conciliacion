@@ -1,76 +1,50 @@
 import streamlit as st
 import json
-import re
 
-# Cargar reglas STOPP
+# Cargar reglas STOPP desde el archivo JSON
 with open("reglas_stopp.json", "r", encoding="utf-8") as f:
     reglas_stopp = json.load(f)
 
-# Cargar diccionario CIE10
-with open("diccionario_diagnosticos_cie10_completo.json", "r", encoding="utf-8") as f:
-    diccionario_cie10 = json.load(f)
+st.title("Asistente de Conciliación Farmacológica - Reglas STOPP")
 
-# Funciones auxiliares para análisis
-def normalizar(texto):
-    return texto.lower().strip()
+edad = st.number_input("Edad del paciente", min_value=0, max_value=120, step=1)
+antecedentes = st.text_area("Antecedentes personales / Historia clínica")
+medicacion = st.text_area("Tratamiento actual (una línea por fármaco)")
 
-def detectar_diagnosticos(texto_libre, diccionario):
-    diagnosticos_detectados = set()
-    for cie, sinonimos in diccionario.items():
-        for palabra in sinonimos:
-            patron = r"\\b" + re.escape(palabra.lower()) + r"\\b"
-            if re.search(patron, texto_libre.lower()):
-                diagnosticos_detectados.add(cie)
-                break
-    return list(diagnosticos_detectados)
-
-# Mostrar diagnósticos detectados desde texto libre
-diagnosticos_detectados = set()
-
-for regla in reglas_stopp:
-    for diag in regla.get("diagnosticos", []):
-        if diag.lower() in antecedentes.lower():
-            diagnosticos_detectados.add(diag)
-
-if diagnosticos_detectados:
-    st.markdown("#### Diagnósticos detectados en texto libre:")
-    for diag in sorted(diagnosticos_detectados):
-        st.write(f"- {diag}")
-else:
-    st.markdown("#### Diagnósticos detectados en texto libre:")
-    st.write("No se han detectado diagnósticos reconocidos.")
-
-def evaluar_reglas(diagnosticos, medicamentos, sexo):
+if st.button("Analizar"):
     alertas = []
+    diagnosticos_detectados = set()
+    medicamentos_detectados = set()
+
+    antecedentes_texto = antecedentes.lower()
+    medicacion_texto = medicacion.lower()
+
+    # Evaluar cada regla
     for regla in reglas_stopp:
-        if regla.get("sexo", "ambos") not in ["ambos", sexo.lower()]:
-            continue
+        sexo_req = regla.get("sexo", "ambos")
+        if sexo_req not in ["ambos", "no especificado"]:
+            continue  # Por ahora ignoramos la variable sexo si no está definida correctamente
 
-        diag_regla = [normalizar(d) for d in regla.get("diagnosticos", [])]
-        meds_regla = [normalizar(m) for m in regla.get("medicamentos", [])]
-        condiciones = regla.get("condiciones", {})
+        diagnosticos = regla.get("diagnosticos", [])
+        medicamentos = regla.get("medicamentos", [])
 
-        match_diag = any(d in texto_antecedentes for d in diag_regla)
-        match_meds = any(m in texto_meds for m in meds_regla)
+        match_diag = any(diag.lower() in antecedentes_texto for diag in diagnosticos)
+        match_meds = any(med.lower() in medicacion_texto for med in medicamentos)
+
+        if match_diag:
+            for diag in diagnosticos:
+                if diag.lower() in antecedentes_texto:
+                    diagnosticos_detectados.add(diag)
+
+        if match_meds:
+            for med in medicamentos:
+                if med.lower() in medicacion_texto:
+                    medicamentos_detectados.add(med)
 
         if match_diag and match_meds:
             alertas.append(regla["descripcion"])
-    return alertas
 
-# Interfaz Streamlit
-st.title("Conciliación de Medicación - Criterios STOPP")
-
-edad = st.number_input("Edad del paciente", min_value=0, max_value=120, value=75)
-sexo = st.radio("Sexo del paciente", ["hombre", "mujer"], index=0)
-texto_antecedentes = st.text_area("Antecedentes personales / Historia clínica")
-texto_meds = st.text_area("Tratamiento actual (una línea por fármaco)")
-
-if st.button("Analizar"):
-    cie10_detectados = detectar_diagnosticos(texto_antecedentes, diccionario_cie10)
-    medicamentos_normalizados = [normalizar(l) for l in texto_meds.splitlines() if l.strip() != ""]
-    
-    alertas = evaluar_reglas(cie10_detectados, medicamentos_normalizados, sexo)
-
+    # Mostrar alertas
     if alertas:
         st.warning("Se han detectado las siguientes alertas:")
         for alerta in alertas:
@@ -78,6 +52,19 @@ if st.button("Analizar"):
     else:
         st.success("No se han detectado alertas con los datos introducidos.")
 
-    st.info("Diagnósticos detectados:")
-    st.write(cie10_detectados)
+    # Mostrar diagnósticos detectados
+    st.markdown("#### Diagnósticos detectados en texto libre:")
+    if diagnosticos_detectados:
+        for diag in sorted(diagnosticos_detectados):
+            st.write(f"- {diag}")
+    else:
+        st.write("No se han detectado diagnósticos reconocidos.")
+
+    # Mostrar medicamentos detectados (opcional)
+    st.markdown("#### Medicamentos detectados:")
+    if medicamentos_detectados:
+        for med in sorted(medicamentos_detectados):
+            st.write(f"- {med}")
+    else:
+        st.write("No se han detectado medicamentos reconocidos.")
 
