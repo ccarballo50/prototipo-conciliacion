@@ -34,7 +34,7 @@ def cumple_diagnostico_por_prefijo(diagnosticos_detectados, diagnosticos_regla):
 
 def detectar_alertas(edad, sexo, diagnosticos_detectados, medicamentos_detectados, reglas):
     alertas = []
-    for regla in reglas.values():
+    for regla in reglas:
         # Comprobación de edad
         if not (regla["edad_min"] <= edad <= regla["edad_max"]):
             continue
