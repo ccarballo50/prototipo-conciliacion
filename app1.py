@@ -30,4 +30,4 @@ def detectar_diagnosticos(texto, diccionario):
                 break
     return list(encontrados)
 
-        st.success("No se han detectado alertas con los datos introducidos.")
+    st.success("No se han detectado alertas con los datos introducidos.")
