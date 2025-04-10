@@ -42,7 +42,7 @@ def detectar_alertas(edad, sexo, diagnosticos_detectados, medicamentos_detectado
 
 
         # Comprobación de sexo si aplica
-        if regla["sexo"] != "cualquiera" and regla["sexo"].lower() != sexo.lower():
+        if "sexo" in regla and regla["sexo"].lower() != "cualquiera" and regla["sexo"].lower() != sexo.lower():
             continue
 
         # Comprobación de diagnóstico (match exacto o por prefijo contenido)
