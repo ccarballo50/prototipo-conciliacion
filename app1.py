@@ -1,116 +1,59 @@
 import streamlit as st
 import json
 import re
-import datetime
-from fpdf import FPDF
-from io import BytesIO
 
-st.set_page_config(page_title="Conciliación de Medicación", layout="centered")
+# Cargar reglas STOPP
+with open("reglas_stopp.json", "r", encoding="utf-8") as f:
+    reglas_stopp = json.load(f)
 
-# ------------------ CARGA DE ARCHIVOS ------------------
-@st.cache_data
-def cargar_reglas_stopp():
-    with open("reglas_stopp.json", "r", encoding="utf-8") as f:
-        return json.load(f)
+# Cargar diccionario CIE10
+with open("diccionario_diagnosticos_cie10_completo.json", "r", encoding="utf-8") as f:
+    diccionario_cie10 = json.load(f)
 
-@st.cache_data
-def cargar_diccionario_etiquetas():
-    with open("diccionario_diagnosticos.json", "r", encoding="utf-8") as f:
-        return json.load(f)
+# Funciones auxiliares para análisis
+def normalizar(texto):
+    return texto.lower().strip()
 
-reglas_stopp = cargar_reglas_stopp()
-diccionario_etiquetas = cargar_diccionario_etiquetas()
-
-# ------------------ FUNCIONES AUXILIARES ------------------
-def detectar_etiquetas(texto, diccionario):
-    etiquetas = set()
-    for etiqueta, sinonimos in diccionario.items():
-        for s in sinonimos:
-            if re.search(rf"\b{s.lower()}\b", texto.lower()):
-                etiquetas.add(etiqueta)
+def detectar_diagnosticos(texto_libre, diccionario):
+    diagnosticos_detectados = set()
+    for cie, sinonimos in diccionario.items():
+        for palabra in sinonimos:
+            patron = r"\\b" + re.escape(palabra.lower()) + r"\\b"
+            if re.search(patron, texto_libre.lower()):
+                diagnosticos_detectados.add(cie)
                 break
-    return list(etiquetas)
+    return list(diagnosticos_detectados)
 
-def normalizar_medicamentos(lista):
-    return [re.sub(r"[^a-zA-Z0-9]", "", med.lower()) for med in lista]
-
-def generar_pdf(edad, sexo, crea, meds, alertas, etiquetas):
-    pdf = FPDF()
-    pdf.add_page()
-    pdf.set_font("Arial", size=12)
-
-    pdf.cell(200, 10, txt="Informe de Conciliación de Medicación", ln=True, align="C")
-    pdf.ln(10)
-    pdf.cell(200, 10, txt=f"Fecha: {datetime.datetime.now().strftime('%d/%m/%Y %H:%M')}", ln=True)
-    pdf.cell(200, 10, txt=f"Edad: {edad} años", ln=True)
-    pdf.cell(200, 10, txt=f"Sexo: {sexo}", ln=True)
-    pdf.cell(200, 10, txt=f"Creatinina: {crea}", ln=True)
-
-    pdf.ln(5)
-    pdf.set_font("Arial", style="B", size=12)
-    pdf.cell(200, 10, txt="Tratamiento introducido:", ln=True)
-    pdf.set_font("Arial", size=12)
-    for med in meds:
-        pdf.cell(200, 8, txt=f"- {med}", ln=True)
-
-    pdf.ln(5)
-    pdf.set_font("Arial", style="B", size=12)
-    pdf.cell(200, 10, txt="Alertas detectadas:", ln=True)
-    pdf.set_font("Arial", size=12)
-    if alertas:
-        for alerta in alertas:
-            pdf.multi_cell(0, 8, txt=f"- {alerta}")
-    else:
-        pdf.cell(200, 8, txt="No se detectaron alertas.", ln=True)
-
-    pdf.ln(5)
-    pdf.set_font("Arial", style="B", size=12)
-    pdf.cell(200, 10, txt="Etiquetas clínicas detectadas:", ln=True)
-    pdf.set_font("Arial", size=12)
-    if etiquetas:
-        pdf.multi_cell(0, 8, txt=", ".join(etiquetas))
-    else:
-        pdf.cell(200, 8, txt="Ninguna", ln=True)
-
-    buffer = BytesIO()
-    pdf.output(buffer)
-    pdf_bytes = buffer.getvalue()
-    buffer.close()
-    return pdf_bytes
-
-# ------------------ INTERFAZ STREAMLIT ------------------
-st.title("Conciliación de Medicación (Demo STOPP)")
-
-edad = st.number_input("Edad del paciente", min_value=0, max_value=120, value=80)
-sexo = st.selectbox("Sexo del paciente", ["masculino", "femenino"])
-crea = st.text_input("Creatinina (mg/dL)", value="1.2")
-antecedentes = st.text_area("Antecedentes personales")
-medicacion_input = st.text_area("Tratamiento actual (una línea por fármaco)")
-
-if st.button("Analizar"):
-    medicamentos = [m.strip() for m in medicacion_input.splitlines() if m.strip()]
-    meds_normalizados = normalizar_medicamentos(medicamentos)
-    etiquetas_detectadas = detectar_etiquetas(antecedentes, diccionario_etiquetas)
-
+def evaluar_reglas(diagnosticos, medicamentos, sexo):
     alertas = []
     for regla in reglas_stopp:
+        if regla.get("sexo", "ambos") not in ["ambos", sexo.lower()]:
+            continue
+
+        diag_regla = [normalizar(d) for d in regla.get("diagnosticos", [])]
+        meds_regla = [normalizar(m) for m in regla.get("medicamentos", [])]
         condiciones = regla.get("condiciones", {})
-        medicamentos_regla = condiciones.get("medicamentos", [])
-        diagnosticos_regla = condiciones.get("diagnosticos", [])
-        edad_min = condiciones.get("edad_min", 0)
-        edad_max = condiciones.get("edad_max", 200)
-        sexo_regla = condiciones.get("sexo", "ambos")
 
-        if edad < edad_min or edad > edad_max:
-            continue
-        if sexo_regla != "ambos" and sexo != sexo_regla:
-            continue
-        if diagnosticos_regla and not any(d in etiquetas_detectadas for d in diagnosticos_regla):
-            continue
-        if medicamentos_regla and not any(m in meds_normalizados for m in medicamentos_regla):
-            continue
+        match_diag = any(d in texto_antecedentes for d in diag_regla)
+        match_meds = any(m in texto_meds for m in meds_regla)
 
-        alertas.append(regla.get("descripcion"))
+        if match_diag and match_meds:
+            alertas.append(regla["descripcion"])
+    return alertas
+
+# Interfaz Streamlit
+st.title("Conciliación de Medicación - Criterios STOPP")
+
+edad = st.number_input("Edad del paciente", min_value=0, max_value=120, value=75)
+sexo = st.radio("Sexo del paciente", ["hombre", "mujer"], index=0)
+texto_antecedentes = st.text_area("Antecedentes personales / Historia clínica")
+texto_meds = st.text_area("Tratamiento actual (una línea por fármaco)")
+
+if st.button("Analizar"):
+    cie10_detectados = detectar_diagnosticos(texto_antecedentes, diccionario_cie10)
+    medicamentos_normalizados = [normalizar(l) for l in texto_meds.splitlines() if l.strip() != ""]
+    
+    alertas = evaluar_reglas(cie10_detectados, medicamentos_normalizados, sexo)
 
     if alertas:
         st.warning("Se han detectado las siguientes alertas:")
@@ -119,8 +62,6 @@ if st.button("Analizar"):
     else:
         st.success("No se han detectado alertas con los datos introducidos.")
 
-    st.info("Etiquetas detectadas: " + ", ".join(etiquetas_detectadas))
-
-    pdf_bytes = generar_pdf(edad, sexo, crea, medicamentos, alertas, etiquetas_detectadas)
-    st.download_button("Descargar informe PDF", data=pdf_bytes, file_name="informe_conciliacion.pdf")
+    st.info("Diagnósticos detectados:")
+    st.write(cie10_detectados)
 
