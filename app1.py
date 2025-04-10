@@ -36,8 +36,10 @@ def detectar_alertas(edad, sexo, diagnosticos_detectados, medicamentos_detectado
     alertas = []
     for regla in reglas:
         # Comprobación de edad
-        if not (regla["edad_min"] <= edad <= regla["edad_max"]):
-            continue
+        if "edad_min" in regla and "edad_max" in regla:
+            if not (regla["edad_min"] <= edad <= regla["edad_max"]):
+                continue
+
 
         # Comprobación de sexo si aplica
         if regla["sexo"] != "cualquiera" and regla["sexo"].lower() != sexo.lower():
