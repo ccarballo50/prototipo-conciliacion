@@ -22,15 +22,16 @@ reglas_stopp = cargar_reglas_stopp()
 diccionario_cie10 = cargar_diccionario_cie10()
 
 # ------------------ FUNCIONES ------------------
-def detectar_diagnosticos(texto, diccionario):
+
+def detectar_diagnosticos(texto, diccionario_cie10):
     encontrados = set()
-    texto = texto.lower()
-    for codigo, patrones in diccionario.items():
-        for patron in patrones:
-            if re.search(rf"\\b{patron.lower()}\\b", texto):
-                encontrados.add(codigo)
-                break
+    for patron, codigos in diccionario_cie10.items():
+        # Escapamos el patrón para evitar errores por paréntesis, etc.
+        patron_escapado = re.escape(patron.lower())
+        if re.search(rf"\b{patron_escapado}\b", texto.lower()):
+            encontrados.update(codigos)
     return list(encontrados)
+
 
 def normalizar_medicamentos(lista):
     return [re.sub(r"[^a-zA-Z0-9]", "", med.lower()) for med in lista]
