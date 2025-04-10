@@ -2,24 +2,19 @@
   {
     "id": "STOPP01",
     "descripcion": "Evitar ipratropio en pacientes con antecedentes de glaucoma (riesgo de crisis ocular).",
-    "condiciones": {
-      "medicamentos": ["ipratropio", "bromuro de ipratropio"],
-      "diagnosticos": ["glaucoma"],
-      "edad_min": 65,
-      "edad_max": null,
-      "sexo": "ambos"
-    }
+    "sexo": "ambos",
+    "diagnosticos": ["glaucoma"],
+    "medicamentos": ["ipratropio", "bromuro de ipratropio"],
+    "condiciones": {}
   },
   {
     "id": "STOPP02",
     "descripcion": "Evitar AINEs en pacientes con insuficiencia renal crónica (riesgo de deterioro renal).",
-    "condiciones": {
-      "medicamentos": ["ibuprofeno", "naproxeno", "diclofenaco"],
-      "diagnosticos": ["insuficiencia renal", "enfermedad renal crónica"],
-      "edad_min": 65,
-      "edad_max": null,
-      "sexo": "ambos"
-    }
+    "sexo": "ambos",
+    "diagnosticos": ["insuficiencia renal", "enfermedad renal crónica", "insuficiencia renal crónica"],
+    "medicamentos": ["ibuprofeno", "naproxeno", "diclofenaco", "ketorolaco", "dexketoprofeno", "piroxicam", "meloxicam"],
+    "condiciones": {}
   }
 ]
+
 
