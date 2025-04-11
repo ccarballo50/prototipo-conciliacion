@@ -8,7 +8,6 @@ st.title("Conciliación de Medicación - Reglas STOPP")
 
 # ---------------------- CARGA DE DATOS ----------------------
 @st.cache_data
-
 def cargar_diccionario(path):
     try:
         with open(path, "r", encoding="utf-8") as f:
@@ -58,13 +57,36 @@ if st.button("Analizar"):
     medicamentos_detectados = detectar_patrones(tratamiento, diccionario_medicamentos)
     clases_detectadas = obtener_clases(medicamentos_detectados, diccionario_clases)
 
+    variables_clinicas = {
+        "edad": edad,
+        "filtrado_glomerular": filtrado_glomerular,
+        "creatinina": creatinina,
+        "frecuencia_cardiaca": frecuencia_cardiaca,
+    }
+
     alertas = []
     for regla in reglas_stopp:
         condiciones = regla.get("condiciones", {})
-        # Aplicar condiciones clínicas aquí si fuese necesario
+        diagnosticos_regla = regla.get("diagnosticos", [])
+        medicamentos_regla = regla.get("medicamentos", [])
+        clases_regla = regla.get("clases", [])
 
-        if any(d.lower() in diagnosticos_detectados for d in regla["diagnosticos"]) and \
-           any(m.lower() in medicamentos_detectados for m in regla["medicamentos"]):
+        hay_diagnostico = any(d.lower() in diagnosticos_detectados for d in diagnosticos_regla)
+        hay_medicamento = any(m.lower() in medicamentos_detectados for m in medicamentos_regla)
+        hay_clase = any(c.lower() in clases_detectadas for c in clases_regla)
+
+        cumple_condiciones = True
+        for var, valor_esperado in condiciones.items():
+            valor_real = variables_clinicas.get(var)
+            if isinstance(valor_esperado, dict):
+                if "min" in valor_esperado and valor_real < valor_esperado["min"]:
+                    cumple_condiciones = False
+                if "max" in valor_esperado and valor_real > valor_esperado["max"]:
+                    cumple_condiciones = False
+            elif valor_real != valor_esperado:
+                cumple_condiciones = False
+
+        if hay_diagnostico and (hay_medicamento or hay_clase) and cumple_condiciones:
             alertas.append(regla["descripcion"])
 
     st.subheader("Alertas STOPP detectadas:")
