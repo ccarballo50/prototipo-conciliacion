@@ -1,11 +1,10 @@
 import streamlit as st
 import json
 import re
-import requests
 
 # ---------------------- CONFIGURACIÓN ----------------------
 st.set_page_config(page_title="Conciliación de Medicación", layout="centered")
-st.title("Conciliación de Medicación - Herramienta Integral")
+st.title("Conciliación de Medicación - Reglas STOPP")
 
 # ---------------------- CARGA DE DATOS ----------------------
 @st.cache_data
@@ -20,6 +19,7 @@ def cargar_diccionario(path):
 reglas_stopp = cargar_diccionario("reglas_stopp.json")
 diccionario_diagnosticos = cargar_diccionario("diccionario_diagnosticos.json")
 diccionario_medicamentos = cargar_diccionario("diccionario_medicamentos.json")
+diccionario_clases = cargar_diccionario("diccionario_clases_farmacos.json")
 
 # ---------------------- FUNCIONES ----------------------
 def limpiar_texto(texto):
@@ -35,71 +35,63 @@ def detectar_patrones(texto, diccionario):
                 break
     return list(set(encontrados))
 
-def limpiar_nombre_medicamento(nombre):
-    return re.sub(r"\s\d+.*", "", nombre).strip().lower()
-
-def buscar_medicamento_cima(nombre):
-    url = f"https://cima.aemps.es/cima/rest/medicamentos?nombre={nombre}"
-    response = requests.get(url)
-    if response.status_code == 200:
-        data = response.json()
-        if data and data.get("resultados"):
-            return data["resultados"]
-    return []
+def obtener_clases(medicamentos, diccionario_clases):
+    clases = []
+    for m in medicamentos:
+        if m in diccionario_clases:
+            clases.extend(diccionario_clases[m])
+    return list(set(clases))
 
 # ---------------------- INTERFAZ ----------------------
-modo = st.radio("Selecciona una funcionalidad:", ["Análisis STOPP", "Consulta en CIMA"])
+st.subheader("Datos del paciente")
+edad = st.number_input("Edad", min_value=0, max_value=120, value=75)
+frecuencia_cardiaca = st.number_input("Frecuencia cardiaca (lpm)", min_value=20, max_value=200, value=70)
+filtrado_glomerular = st.number_input("Filtrado glomerular estimado (ml/min)", min_value=0, max_value=200, value=80)
+creatinina = st.number_input("Creatinina (mg/dL)", min_value=0.0, max_value=10.0, value=0.9, step=0.1)
 
-# ---------------------- ANÁLISIS STOPP ----------------------
-if modo == "Análisis STOPP":
-    edad = st.number_input("Edad del paciente", min_value=0, max_value=120, value=75)
-    antecedentes = st.text_area("Antecedentes personales / Historia clínica")
-    tratamiento = st.text_area("Tratamiento actual (una línea por fármaco):")
+st.subheader("Información clínica")
+antecedentes = st.text_area("Antecedentes personales / Historia clínica")
+tratamiento = st.text_area("Tratamiento actual (una línea por fármaco):")
 
-    if st.button("Analizar"):
-        diagnosticos_detectados = detectar_patrones(antecedentes, diccionario_diagnosticos)
-        medicamentos_detectados = detectar_patrones(tratamiento, diccionario_medicamentos)
+if st.button("Analizar"):
+    diagnosticos_detectados = detectar_patrones(antecedentes, diccionario_diagnosticos)
+    medicamentos_detectados = detectar_patrones(tratamiento, diccionario_medicamentos)
+    clases_detectadas = obtener_clases(medicamentos_detectados, diccionario_clases)
 
-        alertas = []
-        for regla in reglas_stopp:
-            if any(d.lower() in diagnosticos_detectados for d in regla["diagnosticos"]) and \
-               any(m.lower() in medicamentos_detectados for m in regla["medicamentos"]):
-                alertas.append(regla["descripcion"])
+    alertas = []
+    for regla in reglas_stopp:
+        condiciones = regla.get("condiciones", {})
+        # Aplicar condiciones clínicas aquí si fuese necesario
 
-        st.subheader("Alertas STOPP detectadas:")
-        if alertas:
-            for alerta in alertas:
-                st.warning(f"- {alerta}")
-        else:
-            st.success("No se han detectado alertas con los datos introducidos.")
+        if any(d.lower() in diagnosticos_detectados for d in regla["diagnosticos"]) and \
+           any(m.lower() in medicamentos_detectados for m in regla["medicamentos"]):
+            alertas.append(regla["descripcion"])
 
-        st.subheader("Diagnósticos detectados:")
-        if diagnosticos_detectados:
-            for d in sorted(set(diagnosticos_detectados)):
-                st.markdown(f"- {d}")
-        else:
-            st.write("No se han detectado diagnósticos reconocidos.")
+    st.subheader("Alertas STOPP detectadas:")
+    if alertas:
+        for alerta in alertas:
+            st.warning(f"- {alerta}")
+    else:
+        st.success("No se han detectado alertas con los datos introducidos.")
 
-        st.subheader("Medicamentos detectados:")
-        if medicamentos_detectados:
-            for m in sorted(set(medicamentos_detectados)):
-                st.markdown(f"- {m}")
-        else:
-            st.write("No se han detectado medicamentos reconocidos.")
+    st.subheader("Diagnósticos detectados:")
+    if diagnosticos_detectados:
+        for d in sorted(set(diagnosticos_detectados)):
+            st.markdown(f"- {d}")
+    else:
+        st.write("No se han detectado diagnósticos reconocidos.")
 
-# ---------------------- CONSULTA EN CIMA ----------------------
-if modo == "Consulta en CIMA":
-    med_input = st.text_input("Introduce el nombre del medicamento para consultar (ej: ibuprofeno)", "")
-    if st.button("Buscar medicamento en CIMA"):
-        med_limpio = limpiar_nombre_medicamento(med_input)
-        resultados = buscar_medicamento_cima(med_limpio)
+    st.subheader("Medicamentos detectados:")
+    if medicamentos_detectados:
+        for m in sorted(set(medicamentos_detectados)):
+            st.markdown(f"- {m}")
+    else:
+        st.write("No se han detectado medicamentos reconocidos.")
 
-        if resultados:
-            st.success(f"Se han encontrado {len(resultados)} resultados para '{med_limpio}':")
-            for med in resultados:
-                nombre = med.get("nombre")
-                codigo = med.get("nregistro")
-                url = f"https://cima.aemps.es/cima/pdfs/{codigo}/prospecto.pdf"
-                st.markdown(f"- [{nombre}]({url})")
-        else:
-            st.warning("No se ha encontrado el medicamento en CIMA.")
+    st.subheader("Clases terapéuticas detectadas:")
+    if clases_detectadas:
+        for c in sorted(set(clases_detectadas)):
+            st.markdown(f"- {c}")
+    else:
+        st.write("No se han detectado clases de medicamentos reconocidas.")
+
