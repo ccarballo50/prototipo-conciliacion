@@ -4,7 +4,7 @@ import re
 
 # ---------------------- CONFIGURACIÓN ----------------------
 st.set_page_config(page_title="Conciliación de Medicación", layout="centered")
-st.title("Conciliación de Medicación - Reglas STOPP")
+st.title("Conciliación de Medicación - Herramienta Integral")
 
 # ---------------------- CARGA DE DATOS ----------------------
 @st.cache_data
@@ -43,10 +43,11 @@ def obtener_clases(medicamentos, diccionario_clases):
 
 # ---------------------- INTERFAZ ----------------------
 st.subheader("Datos del paciente")
-edad = st.number_input("Edad", min_value=0, max_value=120, value=75)
+edad = st.number_input("Edad del paciente", min_value=0, max_value=120, value=75)
 frecuencia_cardiaca = st.number_input("Frecuencia cardiaca (lpm)", min_value=20, max_value=200, value=70)
-filtrado_glomerular = st.number_input("Filtrado glomerular estimado (ml/min)", min_value=0, max_value=200, value=80)
+filtrado_glomerular = st.number_input("Filtrado glomerular (ml/min)", min_value=0, max_value=200, value=80)
 creatinina = st.number_input("Creatinina (mg/dL)", min_value=0.0, max_value=10.0, value=0.9, step=0.1)
+potasio = st.number_input("Potasio (mmol/L)", min_value=2.0, max_value=7.0, value=4.5, step=0.1)
 
 st.subheader("Información clínica")
 antecedentes = st.text_area("Antecedentes personales / Historia clínica")
@@ -62,6 +63,7 @@ if st.button("Analizar"):
         "filtrado_glomerular": filtrado_glomerular,
         "creatinina": creatinina,
         "frecuencia_cardiaca": frecuencia_cardiaca,
+        "potasio": potasio,
     }
 
     alertas = []
