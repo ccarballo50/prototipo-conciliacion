@@ -3,33 +3,55 @@ import json
 import re
 import requests
 
-# ------------------- Cargar reglas y diccionarios -------------------
-with open("reglas_stopp.json", "r", encoding="utf-8") as f:
-    reglas_stopp = json.load(f)
+# ---------------------- CONFIGURACIÓN ----------------------
+st.set_page_config(page_title="Conciliación de Medicación", layout="centered")
+st.title("Conciliación de Medicación - Herramienta Integral")
 
-with open("diccionario_diagnosticos.json", "r", encoding="utf-8") as f:
-    diccionario_diagnosticos = json.load(f)
+# ---------------------- CARGA DE DATOS ----------------------
+@st.cache_data
 
-with open("diccionario_medicamentos.json", "r", encoding="utf-8") as f:
-    diccionario_medicamentos = json.load(f)
+def cargar_diccionario(path):
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return {}
 
-# ------------------- Funciones auxiliares -------------------
+reglas_stopp = cargar_diccionario("reglas_stopp.json")
+diccionario_diagnosticos = cargar_diccionario("diccionario_diagnosticos.json")
+diccionario_medicamentos = cargar_diccionario("diccionario_medicamentos.json")
+
+# ---------------------- FUNCIONES ----------------------
+def limpiar_texto(texto):
+    return re.sub(r"[\W_]+", " ", texto.lower()).strip()
+
 def detectar_patrones(texto, diccionario):
     encontrados = []
+    texto_limpio = limpiar_texto(texto)
     for categoria, sinonimos in diccionario.items():
         for patron in sinonimos:
-            if re.search(rf"\\b{re.escape(patron.lower())}\\b", texto.lower()):
+            if patron.lower() in texto_limpio:
                 encontrados.append(categoria.lower())
                 break
     return list(set(encontrados))
 
-# ------------------- Interfaz -------------------
-st.title("Conciliación de Medicación - Herramienta Integral")
+def limpiar_nombre_medicamento(nombre):
+    return re.sub(r"\s\d+.*", "", nombre).strip().lower()
 
-pestaña = st.sidebar.radio("Selecciona una funcionalidad:", ["Análisis STOPP", "Consulta en CIMA"])
+def buscar_medicamento_cima(nombre):
+    url = f"https://cima.aemps.es/cima/rest/medicamentos?nombre={nombre}"
+    response = requests.get(url)
+    if response.status_code == 200:
+        data = response.json()
+        if data and data.get("resultados"):
+            return data["resultados"]
+    return []
 
-# ------------------- Pestaña 1: Análisis STOPP -------------------
-if pestaña == "Análisis STOPP":
+# ---------------------- INTERFAZ ----------------------
+modo = st.radio("Selecciona una funcionalidad:", ["Análisis STOPP", "Consulta en CIMA"])
+
+# ---------------------- ANÁLISIS STOPP ----------------------
+if modo == "Análisis STOPP":
     edad = st.number_input("Edad del paciente", min_value=0, max_value=120, value=75)
     antecedentes = st.text_area("Antecedentes personales / Historia clínica")
     tratamiento = st.text_area("Tratamiento actual (una línea por fármaco):")
@@ -40,15 +62,14 @@ if pestaña == "Análisis STOPP":
 
         alertas = []
         for regla in reglas_stopp:
-            if any(d.lower() in diagnosticos_detectados for d in regla.get("diagnosticos", [])) and \
-               any(m.lower() in medicamentos_detectados for m in regla.get("medicamentos", [])):
+            if any(d.lower() in diagnosticos_detectados for d in regla["diagnosticos"]) and \
+               any(m.lower() in medicamentos_detectados for m in regla["medicamentos"]):
                 alertas.append(regla["descripcion"])
 
         st.subheader("Alertas STOPP detectadas:")
         if alertas:
-            st.warning("Se han detectado las siguientes alertas:")
             for alerta in alertas:
-                st.markdown(f"- {alerta}")
+                st.warning(f"- {alerta}")
         else:
             st.success("No se han detectado alertas con los datos introducidos.")
 
@@ -66,23 +87,19 @@ if pestaña == "Análisis STOPP":
         else:
             st.write("No se han detectado medicamentos reconocidos.")
 
-# ------------------- Pestaña 2: Consulta en CIMA -------------------
-elige = st.session_state.get("med") if "med" in st.session_state else ""
-
-if pestaña == "Consulta en CIMA":
-    medicamento = st.text_input("Introduce el nombre del medicamento para consultar (ej: ibuprofeno)", value=elige)
+# ---------------------- CONSULTA EN CIMA ----------------------
+if modo == "Consulta en CIMA":
+    med_input = st.text_input("Introduce el nombre del medicamento para consultar (ej: ibuprofeno)", "")
     if st.button("Buscar medicamento en CIMA"):
-        url = f"https://cima.aemps.es/cima/rest/medicamentos?nombre={medicamento}"
-        try:
-            response = requests.get(url)
-            data = response.json().get("resultados", [])
-            if data:
-                med = data[0]
-                st.session_state.med = medicamento
-                st.markdown(f"**Nombre comercial:** {med.get('nombre', 'No disponible')}")
-                st.markdown(f"**Laboratorio:** {med.get('labtitular', 'No disponible')}")
-                st.markdown(f"**Principio activo:** {med.get('composicion', 'No disponible')}")
-            else:
-                st.warning("No se ha encontrado el medicamento en CIMA.")
-        except Exception as e:
-            st.error(f"Error al consultar la API de CIMA: {e}")
+        med_limpio = limpiar_nombre_medicamento(med_input)
+        resultados = buscar_medicamento_cima(med_limpio)
+
+        if resultados:
+            st.success(f"Se han encontrado {len(resultados)} resultados para '{med_limpio}':")
+            for med in resultados:
+                nombre = med.get("nombre")
+                codigo = med.get("nregistro")
+                url = f"https://cima.aemps.es/cima/pdfs/{codigo}/prospecto.pdf"
+                st.markdown(f"- [{nombre}]({url})")
+        else:
+            st.warning("No se ha encontrado el medicamento en CIMA.")
