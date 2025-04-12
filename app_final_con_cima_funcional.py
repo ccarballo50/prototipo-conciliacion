@@ -45,9 +45,9 @@ def obtener_clases(medicamentos, diccionario_clases):
 st.subheader("Datos del paciente")
 edad = st.number_input("Edad del paciente", min_value=0, max_value=120, value=75)
 frecuencia_cardiaca = st.number_input("Frecuencia cardiaca (lpm)", min_value=20, max_value=200, value=70)
-filtrado_glomerular = st.number_input("Filtrado glomerular (ml/min)", min_value=0, max_value=200, value=80)
-creatinina = st.number_input("Creatinina (mg/dL)", min_value=0.0, max_value=10.0, value=0.9, step=0.1)
-potasio = st.number_input("Potasio (mmol/L)", min_value=2.0, max_value=7.0, value=4.5, step=0.1)
+filtrado_glomerular = st.number_input("Filtrado glomerular estimado (ml/min)", min_value=0, max_value=150, value=90)
+creatinina = st.number_input("Creatinina (mg/dL)", min_value=0.1, max_value=20.0, value=1.0, step=0.1)
+potasio = st.number_input("Potasio (mmol/L)", min_value=2.0, max_value=7.0, value=4.0, step=0.1)
 
 st.subheader("Información clínica")
 antecedentes = st.text_area("Antecedentes personales / Historia clínica")
@@ -60,10 +60,10 @@ if st.button("Analizar"):
 
     variables_clinicas = {
         "edad": edad,
+        "frecuencia_cardiaca": frecuencia_cardiaca,
         "filtrado_glomerular": filtrado_glomerular,
         "creatinina": creatinina,
-        "frecuencia_cardiaca": frecuencia_cardiaca,
-        "potasio": potasio,
+        "potasio": potasio
     }
 
     alertas = []
@@ -88,7 +88,7 @@ if st.button("Analizar"):
             elif valor_real != valor_esperado:
                 cumple_condiciones = False
 
-        if hay_diagnostico and (hay_medicamento or hay_clase) and cumple_condiciones:
+        if (hay_diagnostico or hay_medicamento or hay_clase) and cumple_condiciones:
             alertas.append(regla["descripcion"])
 
     st.subheader("Alertas STOPP detectadas:")
